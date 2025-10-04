@@ -68,4 +68,4 @@ jobs:
         uses: actions/cache@v4
         with:
           path: deriveddata.tar
-          key: deriveddata-${{ github.sha }}
+          key: deriveddata-static
