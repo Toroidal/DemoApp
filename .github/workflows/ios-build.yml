@@ -52,7 +52,7 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios
-          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
+          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release CODE_SIGNING_ALLOWED=NO
       - name: List DerivedData before tar
         run: ls -al ~/Library/Developer/Xcode/DerivedData || echo "DerivedData does not exist"
       - name: Tar DerivedData for cache
