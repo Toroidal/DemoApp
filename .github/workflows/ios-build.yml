@@ -54,6 +54,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: List workspace contents
+        run: ls -al
+      - name: List ios contents
+        run: ls -al ios
       - name: Install dependencies
         run: npm install
       - name: Install CocoaPods
