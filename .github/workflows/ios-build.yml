@@ -37,22 +37,33 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
+      - name: Untar DerivedData after cache restore
+        if: always()
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData || true
+          mkdir -p ~/Library/Developer/Xcode
+          if [ -f deriveddata.tar ]; then
+            tar --posix -xf deriveddata.tar -C ~/Library/Developer/Xcode
+          else
+            echo "No deriveddata.tar cache to extract."
+          fi
+      - name: Build iOS
+        run: |
+          cd ios
+          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
+      - name: List DerivedData before tar
+        run: ls -al ~/Library/Developer/Xcode/DerivedData || echo "DerivedData does not exist"
       - name: Tar DerivedData for cache
         if: always()
         run: |
-          tar --posix -cf deriveddata.tar -C ~/Library/Developer/Xcode DerivedData
+          if [ -d "${HOME}/Library/Developer/Xcode/DerivedData" ] && [ "$(ls -A ${HOME}/Library/Developer/Xcode/DerivedData)" ]; then
+            tar --posix -cf deriveddata.tar -C ~/Library/Developer/Xcode DerivedData
+          else
+            echo "No DerivedData to tar."
+            rm -f deriveddata.tar
+          fi
       - name: Cache DerivedData (tar)
         uses: actions/cache@v4
         with:
           path: deriveddata.tar
           key: deriveddata-${{ github.sha }}
-      - name: Untar DerivedData after cache restore
-        if: always()
-        run: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData
-          mkdir -p ~/Library/Developer/Xcode
-          tar --posix -xf deriveddata.tar -C ~/Library/Developer/Xcode
-      - name: Build iOS
-        run: |
-          cd ios
-          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
