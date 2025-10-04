@@ -20,15 +20,15 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
       - name: Install dependencies
         run: npm install
-      - name: Install CocoaPods
-        run: |
-          sudo gem install cocoapods
-          cd ios && pod install
       - name: Cache Pods
         uses: actions/cache@v4
         with:
           path: ios/Pods
           key: pods-${{ hashFiles('ios/Podfile.lock') }}
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          cd ios && pod install
       - name: Generate DerivedData mtime hash
         run: |
           find ~/Library/Developer/Xcode/DerivedData -type f -exec stat -f "%m" {} \; | sort | shasum | awk '{print $1}' > deriveddata-mtime.txt
