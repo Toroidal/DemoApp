@@ -37,7 +37,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
+          key: deriveddata-static
       - name: Untar DerivedData after cache restore
         if: always()
         run: |
