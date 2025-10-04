@@ -1,4 +1,4 @@
-name: iOS Build (Intel & Apple Silicon)
+name: iOS Build Cache Experimenting
 
 on:
   push:
