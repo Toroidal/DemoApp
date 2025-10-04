@@ -48,24 +48,24 @@ jobs:
           else
             echo "No deriveddata.tar cache to extract."
           fi
-      - name: Build iOS
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.1.app
-          cd ios
-          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
-      - name: List DerivedData before tar
-        run: ls -al ~/Library/Developer/Xcode/DerivedData || echo "DerivedData does not exist"
-      - name: Tar DerivedData for cache
-        if: always()
-        run: |
-          if [ -d "${HOME}/Library/Developer/Xcode/DerivedData" ] && [ "$(ls -A ${HOME}/Library/Developer/Xcode/DerivedData)" ]; then
-            tar --posix -cf deriveddata.tar -C ~/Library/Developer/Xcode DerivedData
-          else
-            echo "No DerivedData to tar."
-            rm -f deriveddata.tar
-          fi
-      - name: Cache DerivedData (tar)
-        uses: actions/cache@v4
-        with:
-          path: deriveddata.tar
-          key: deriveddata-${{ github.sha }}
+      # - name: Build iOS
+      #   run: |
+      #     sudo xcode-select -s /Applications/Xcode_16.1.app
+      #     cd ios
+      #     time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
+      # - name: List DerivedData before tar
+      #   run: ls -al ~/Library/Developer/Xcode/DerivedData || echo "DerivedData does not exist"
+      # - name: Tar DerivedData for cache
+      #   if: always()
+      #   run: |
+      #     if [ -d "${HOME}/Library/Developer/Xcode/DerivedData" ] && [ "$(ls -A ${HOME}/Library/Developer/Xcode/DerivedData)" ]; then
+      #       tar --posix -cf deriveddata.tar -C ~/Library/Developer/Xcode DerivedData
+      #     else
+      #       echo "No DerivedData to tar."
+      #       rm -f deriveddata.tar
+      #     fi
+      # - name: Cache DerivedData (tar)
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: deriveddata.tar
+      #     key: deriveddata-${{ github.sha }}
