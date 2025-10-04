@@ -1,4 +1,4 @@
-name: iOS Build Cache Experimenting
+name: iOS Build Cache Experiment
 
 on:
   push:
