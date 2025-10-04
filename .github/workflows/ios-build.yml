@@ -35,21 +35,15 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
-
-    restore_mtime:
-      name: Restore mtimes from git
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - name: Update mtime for incremental builds
-          run: |
-            python3 -m pip install --upgrade pip
-            pip install git-restore-mtime
-            python3 -m git_restore_mtime --force
-        - name: Build iOS
-          run: |
-            cd ios
-            time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
+      - name: Update mtime for incremental builds
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install git-restore-mtime
+          python3 -m git_restore_mtime --force
+      - name: Build iOS
+        run: |
+          cd ios
+          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
 
   build-apple-silicon:
     name: Build on Apple Silicon (macos-14)
