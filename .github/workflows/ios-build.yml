@@ -1,0 +1,100 @@
+name: iOS Build (Intel & Apple Silicon)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-intel:
+    name: Build on Intel (macos-13)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          cd ios && pod install
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: pods-${{ hashFiles('ios/Podfile.lock') }}
+      - name: Generate DerivedData mtime hash
+        run: |
+          find ~/Library/Developer/Xcode/DerivedData -type f -exec stat -f "%m" {} \; | sort | shasum | awk '{print $1}' > deriveddata-mtime.txt
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
+
+    restore_mtime:
+      name: Restore mtimes from git
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - name: Update mtime for incremental builds
+          run: |
+            python3 -m pip install --upgrade pip
+            pip install git-restore-mtime
+            python3 -m git_restore_mtime --force
+        - name: Build iOS
+          run: |
+            cd ios
+            time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
+
+  build-apple-silicon:
+    name: Build on Apple Silicon (macos-14)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          cd ios && pod install
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: pods-${{ hashFiles('ios/Podfile.lock') }}
+      - name: Generate DerivedData mtime hash
+        run: |
+          find ~/Library/Developer/Xcode/DerivedData -type f -exec stat -f "%m" {} \; | sort | shasum | awk '{print $1}' > deriveddata-mtime.txt
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
+      - name: Tar DerivedData for cache
+        if: always()
+        run: |
+          tar --posix -cf deriveddata.tar -C ~/Library/Developer/Xcode DerivedData
+      - name: Cache DerivedData (tar)
+        uses: actions/cache@v4
+        with:
+          path: deriveddata.tar
+          key: deriveddata-${{ github.sha }}
+      - name: Untar DerivedData after cache restore
+        if: always()
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData
+          mkdir -p ~/Library/Developer/Xcode
+          tar --posix -xf deriveddata.tar -C ~/Library/Developer/Xcode
+      - name: Build iOS
+        run: |
+          cd ios
+          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
