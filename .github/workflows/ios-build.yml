@@ -7,45 +7,7 @@ on:
     branches: ["**"]
 
 jobs:
-  build-intel:
-    name: Build on Intel (macos-13)
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm install
-      - name: Install CocoaPods
-        run: |
-          sudo gem install cocoapods
-          cd ios && pod install
-      - name: Cache Pods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: pods-${{ hashFiles('ios/Podfile.lock') }}
-      - name: Generate DerivedData mtime hash
-        run: |
-          find ~/Library/Developer/Xcode/DerivedData -type f -exec stat -f "%m" {} \; | sort | shasum | awk '{print $1}' > deriveddata-mtime.txt
-      - name: Cache DerivedData
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: deriveddata-${{ hashFiles('deriveddata-mtime.txt') }}
-      - name: Update mtime for incremental builds
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install git-restore-mtime
-          python3 -m git_restore_mtime --force
-      - name: Build iOS
-        run: |
-          cd ios
-          time xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release
-
-  build-apple-silicon:
+  build:
     name: Build on Apple Silicon (macos-14)
     runs-on: macos-14
     steps:
@@ -54,6 +16,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
       - name: Install dependencies
         run: npm install
       - name: Install CocoaPods
