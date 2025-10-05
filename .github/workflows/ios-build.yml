@@ -68,7 +68,7 @@ jobs:
           echo "export OBJC='ccache clang'" >> $GITHUB_ENV
           echo "export OBJCXX='ccache clang++'" >> $GITHUB_ENV
           echo "export CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
-          ccache --max-size=2G
+          ccache --max-size=5G
           mkdir -p ~/.ccache
 
       - name: Cache ccache
@@ -78,6 +78,25 @@ jobs:
           key: ccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.buildType }}-
+
+      # --- sccache setup (Swift caching) ---
+      - name: Install sccache
+        run: brew install sccache
+
+      - name: Configure sccache
+        run: |
+          echo "export SWIFT_DRIVER_EXECUTABLE=/usr/bin/swift" >> $GITHUB_ENV
+          echo "export SWIFT_DRIVER_CACHE_TOOL=/usr/local/bin/sccache" >> $GITHUB_ENV
+          echo "export SCCACHE_DIR=$HOME/.sccache" >> $GITHUB_ENV
+          mkdir -p $HOME/.sccache
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.sccache
+          key: sccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            sccache-${{ runner.os }}-${{ matrix.buildType }}-
 
       # --- Xcode setup ---
       - name: Select Xcode 16.1
@@ -112,3 +131,7 @@ jobs:
       - name: Show ccache stats
         if: always()
         run: ccache -s
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
