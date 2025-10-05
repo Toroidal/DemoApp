@@ -31,7 +31,7 @@ jobs:
           restore-keys: node-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       # --- CocoaPods setup and cache ---
       - name: Cache CocoaPods
