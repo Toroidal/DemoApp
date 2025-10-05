@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Archive iOS
     runs-on: macos-14
 
     steps:
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Select Xcode 16.1 (before everything)
+      - name: Select Xcode 16.1
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
       - name: Install dependencies
@@ -33,7 +33,6 @@ jobs:
 
       - name: Install CocoaPods
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.1.app
           sudo gem install cocoapods
           cd ios && pod install
 
@@ -46,13 +45,15 @@ jobs:
           restore-mtime-targets: |
             DemoApp/**/*
 
-      - name: Build iOS
+      - name: Archive iOS App
         run: |
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios
+          mkdir -p build
           xcodebuild \
             -workspace DemoApp.xcworkspace \
             -scheme DemoApp \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
-            -showBuildTimingSummary
+            -archivePath build/DemoApp.xcarchive \
+            archive
