@@ -1,4 +1,4 @@
-name: iOS Build (Single Archive)
+name: iOS Build (Release Optimized)
 
 on:
   push:
@@ -53,11 +53,49 @@ jobs:
           restore-keys: |
             xcode-cache-deriveddata-${{ github.workflow }}-
 
+      # --- Install and configure ccache ---
+      - name: Install ccache
+        run: brew install ccache
+
+      - name: Configure ccache
+        run: |
+          echo "export CC='ccache clang'" >> $GITHUB_ENV
+          echo "export CXX='ccache clang++'" >> $GITHUB_ENV
+          echo "export OBJC='ccache clang'" >> $GITHUB_ENV
+          echo "export OBJCXX='ccache clang++'" >> $GITHUB_ENV
+          echo "export CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          mkdir -p ~/.ccache
+          ccache --max-size=5G
+          ccache --set-config=compiler_check=content
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
       # --- Xcode setup ---
       - name: Select Xcode 16.1
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
-      # --- Build and archive ---
+      # --- Pre-build Pods (incremental) ---
+      - name: Pre-build Pods (Release)
+        run: |
+          cd ios
+          DERIVED_DATA_PATH=$(pwd)/build/DerivedData
+          mkdir -p "$DERIVED_DATA_PATH"
+
+          echo "Pre-building Pods to populate ccache..."
+          xcodebuild build \
+            -workspace DemoApp.xcworkspace \
+            -scheme Pods-DemoApp \
+            -configuration Release \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -quiet
+
+      # --- Archive iOS App ---
       - name: Archive iOS App
         run: |
           cd ios
@@ -65,15 +103,19 @@ jobs:
           DERIVED_DATA_PATH=$(pwd)/build/DerivedData
           mkdir -p "$DERIVED_DATA_PATH"
 
-          echo "🏗️  Building iOS archive..."
+          echo "🏗️  Archiving iOS App..."
           echo "📦  Archive path: $ARCHIVE_PATH"
           echo "📂  DerivedData path: $DERIVED_DATA_PATH"
 
-          xcodebuild \
+          xcodebuild archive \
             -workspace DemoApp.xcworkspace \
             -scheme DemoApp \
             -configuration Release \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
-            archive \
             -archivePath "$ARCHIVE_PATH"
+
+      # --- Show ccache stats (optional) ---
+      - name: Show ccache stats
+        if: always()
+        run: ccache -s
