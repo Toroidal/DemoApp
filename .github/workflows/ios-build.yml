@@ -68,7 +68,8 @@ jobs:
           echo "export OBJC='ccache clang'" >> $GITHUB_ENV
           echo "export OBJCXX='ccache clang++'" >> $GITHUB_ENV
           echo "export CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
-          ccache --max-size=5G
+          ccache --max-size=5
+          ccache --set-config=compiler_check=content
           mkdir -p ~/.ccache
 
       - name: Cache ccache
