@@ -44,6 +44,7 @@ jobs:
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
+          sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios && pod install
 
       # --- Compiler cache (ccache) ---
