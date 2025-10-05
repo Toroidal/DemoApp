@@ -75,7 +75,12 @@ jobs:
       - name: Archive iOS App
         run: |
           cd ios
-          ARCHIVE_PATH="build/DemoApp-${{ matrix.buildType | capitalize }}.xcarchive"
+          BUILD_TYPE="${{ matrix.buildType }}"
+          CAPITALIZED_TYPE="$(echo $BUILD_TYPE | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
+          ARCHIVE_PATH="build/DemoApp-${CAPITALIZED_TYPE}.xcarchive"
+
+          echo "🏗️  Building for $BUILD_TYPE..."
+          echo "📦  Archive path: $ARCHIVE_PATH"
 
           xcodebuild \
             -workspace DemoApp.xcworkspace \
@@ -86,10 +91,9 @@ jobs:
             archive \
             -archivePath "$ARCHIVE_PATH"
 
-          # Production-only iXGuard
-          if [ "${{ matrix.buildType }}" = "production" ]; then
-            echo "Running iXGuard obfuscation..."
-            # Replace with your real iXGuard command
+          if [ "$BUILD_TYPE" = "production" ]; then
+            echo "🔒 Running iXGuard obfuscation..."
+            # Replace with your actual iXGuard command:
             # ixguard-cli build "$ARCHIVE_PATH"
           fi
 
