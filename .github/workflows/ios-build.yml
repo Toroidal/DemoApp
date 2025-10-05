@@ -10,35 +10,49 @@ jobs:
   build:
     name: Build
     runs-on: macos-14
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Select Xcode 16.1 (before everything)
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
+
       - name: Install dependencies
         run: npm install
+
       - name: Cache Pods
         uses: actions/cache@v4
         with:
           path: ios/Pods
           key: pods-static
+
       - name: Install CocoaPods
         run: |
           sudo xcode-select -s /Applications/Xcode_16.1.app
           sudo gem install cocoapods
           cd ios && pod install
-       - uses: irgaly/xcode-cache@v1
-      with:
-         key: xcode-cache-deriveddata-${{ github.workflow }}-${{ github.sha }}
-         restore-keys: xcode-cache-deriveddata-${{ github.workflow }}-
-         restore-mtime-targets: |
-           DemoApp/**/*
+
+      - name: Cache DerivedData (Xcode)
+        uses: irgaly/xcode-cache@v1
+        with:
+          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ github.ref_name }}
+          restore-keys: |
+            xcode-cache-deriveddata-${{ github.workflow }}-
+          restore-mtime-targets: |
+            DemoApp/**/*
+
       - name: Build iOS
         run: |
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios
-          xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release -showBuildTimingSummary CODE_SIGNING_ALLOWED=NO | tee build.log
-          grep -A100 "Build Timing Summary:" build.log
+          xcodebuild \
+            -workspace DemoApp.xcworkspace \
+            -scheme DemoApp \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            -showBuildTimingSummary
