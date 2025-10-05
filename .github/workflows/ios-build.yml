@@ -1,4 +1,4 @@
-name: iOS Build (Staging & Production)
+name: iOS Build (Single Archive)
 
 on:
   push:
@@ -8,11 +8,8 @@ on:
 
 jobs:
   ios-build:
-    name: Archive iOS (${{ matrix.buildType }})
+    name: Archive iOS
     runs-on: macos-14
-    strategy:
-      matrix:
-        buildType: [staging, production]
 
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # --- CocoaPods setup and cache (based on Podfile) ---
+      # --- CocoaPods setup and cache ---
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
@@ -47,57 +44,14 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios && pod install
 
-      # --- DerivedData cache (original task) ---
+      # --- DerivedData cache ---
       - name: Cache DerivedData (Xcode)
         uses: irgaly/xcode-cache@v1
         with:
-          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-${{ github.ref_name }}
+          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ github.ref_name }}
+          path: ios/build/DerivedData
           restore-keys: |
-            xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-
-          restore-mtime-targets: |
-            DemoApp/**/*
-
-      # --- Compiler cache (ccache) ---
-      - name: Install ccache
-        run: brew install ccache
-
-      - name: Configure ccache
-        run: |
-          echo "export CC='ccache clang'" >> $GITHUB_ENV
-          echo "export CXX='ccache clang++'" >> $GITHUB_ENV
-          echo "export OBJC='ccache clang'" >> $GITHUB_ENV
-          echo "export OBJCXX='ccache clang++'" >> $GITHUB_ENV
-          echo "export CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
-          ccache --max-size=5
-          ccache --set-config=compiler_check=content
-          mkdir -p ~/.ccache
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
-          restore-keys: |
-            ccache-${{ runner.os }}-${{ matrix.buildType }}-
-
-      # --- sccache setup (Swift caching) ---
-      - name: Install sccache
-        run: brew install sccache
-
-      - name: Configure sccache
-        run: |
-          echo "export SWIFT_DRIVER_EXECUTABLE=/usr/bin/swift" >> $GITHUB_ENV
-          echo "export SWIFT_DRIVER_CACHE_TOOL=/usr/local/bin/sccache" >> $GITHUB_ENV
-          echo "export SCCACHE_DIR=$HOME/.sccache" >> $GITHUB_ENV
-          mkdir -p $HOME/.sccache
-
-      - name: Cache sccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.sccache
-          key: sccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ matrix.buildType }}-
+            xcode-cache-deriveddata-${{ github.workflow }}-
 
       # --- Xcode setup ---
       - name: Select Xcode 16.1
@@ -107,34 +61,19 @@ jobs:
       - name: Archive iOS App
         run: |
           cd ios
-          BUILD_TYPE="${{ matrix.buildType }}"
-          CAPITALIZED_TYPE="$(echo $BUILD_TYPE | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
-          ARCHIVE_PATH="build/DemoApp-${CAPITALIZED_TYPE}.xcarchive"
-          DERIVED_DATA_PATH=$(pwd)/build/DerivedData-${BUILD_TYPE}
+          ARCHIVE_PATH="build/DemoApp.xcarchive"
+          DERIVED_DATA_PATH=$(pwd)/build/DerivedData
+          mkdir -p "$DERIVED_DATA_PATH"
 
-          echo "🏗️  Building for $BUILD_TYPE..."
+          echo "🏗️  Building iOS archive..."
           echo "📦  Archive path: $ARCHIVE_PATH"
+          echo "📂  DerivedData path: $DERIVED_DATA_PATH"
 
           xcodebuild \
             -workspace DemoApp.xcworkspace \
             -scheme DemoApp \
             -configuration Release \
-            CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath "$DERIVED_DATA_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
             archive \
             -archivePath "$ARCHIVE_PATH"
-
-          if [ "$BUILD_TYPE" = "production" ]; then
-            echo "🔒 Running iXGuard obfuscation..."
-            # Replace with your actual iXGuard command:
-            # ixguard-cli build "$ARCHIVE_PATH"
-          fi
-
-      # --- Cache stats (optional) ---
-      - name: Show ccache stats
-        if: always()
-        run: ccache -s
-
-      - name: Show sccache stats
-        if: always()
-        run: sccache --show-stats
