@@ -43,4 +43,4 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios
           xcodebuild -workspace DemoApp.xcworkspace -scheme DemoApp -configuration Release -showBuildTimingSummary CODE_SIGNING_ALLOWED=NO | tee build.log
-grep -A100 "Build Timing Summary:" build.log
+          grep -A100 "Build Timing Summary:" build.log
