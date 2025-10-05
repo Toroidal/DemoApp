@@ -54,6 +54,7 @@ jobs:
             -workspace DemoApp.xcworkspace \
             -scheme DemoApp \
             -configuration Release \
+            -parallelizeTargets \
             CODE_SIGNING_ALLOWED=NO \
             -archivePath build/DemoApp.xcarchive \
             archive
