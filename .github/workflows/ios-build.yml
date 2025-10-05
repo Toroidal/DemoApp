@@ -92,6 +92,7 @@ jobs:
             -workspace DemoApp.xcworkspace \
             -scheme Pods-DemoApp \
             -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             -quiet
 
