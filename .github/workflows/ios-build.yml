@@ -110,6 +110,7 @@ jobs:
           BUILD_TYPE="${{ matrix.buildType }}"
           CAPITALIZED_TYPE="$(echo $BUILD_TYPE | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
           ARCHIVE_PATH="build/DemoApp-${CAPITALIZED_TYPE}.xcarchive"
+          DERIVED_DATA_PATH=$(pwd)/build/DerivedData-${BUILD_TYPE}
 
           echo "🏗️  Building for $BUILD_TYPE..."
           echo "📦  Archive path: $ARCHIVE_PATH"
