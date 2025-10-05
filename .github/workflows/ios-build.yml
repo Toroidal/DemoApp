@@ -33,12 +33,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # --- CocoaPods setup and cache ---
+      # --- CocoaPods setup and cache (based on Podfile) ---
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
           path: ios/Pods
-          key: pods-${{ hashFiles('ios/Podfile.lock') }}
+          key: pods-${{ hashFiles('ios/Podfile') }}
           restore-keys: pods-
 
       - name: Install CocoaPods
@@ -46,6 +46,16 @@ jobs:
           sudo gem install cocoapods
           sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios && pod install
+
+      # --- DerivedData cache (original task) ---
+      - name: Cache DerivedData (Xcode)
+        uses: irgaly/xcode-cache@v1
+        with:
+          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-${{ github.ref_name }}
+          restore-keys: |
+            xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-
+          restore-mtime-targets: |
+            DemoApp/**/*
 
       # --- Compiler cache (ccache) ---
       - name: Install ccache
@@ -65,7 +75,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile.lock', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
+          key: ccache-${{ runner.os }}-${{ matrix.buildType }}-${{ hashFiles('ios/Podfile', 'ios/DemoApp.xcodeproj/project.pbxproj') }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.buildType }}-
 
@@ -88,7 +98,6 @@ jobs:
             -workspace DemoApp.xcworkspace \
             -scheme DemoApp \
             -configuration Release \
-            -destination "generic/platform=iOS" \
             CODE_SIGNING_ALLOWED=NO \
             archive \
             -archivePath "$ARCHIVE_PATH"
