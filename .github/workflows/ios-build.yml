@@ -1,4 +1,4 @@
-name: iOS Build Expo Pre-bundle + Archive
+name: iOS Build Expo Managed Workflow - Staging & Production
 
 on:
   push:
@@ -7,9 +7,12 @@ on:
     branches: ["**"]
 
 jobs:
-  build:
-    name: Archive iOS (Expo)
+  archive:
+    name: Archive iOS (Staging & Production)
     runs-on: macos-14
+    strategy:
+      matrix:
+        buildType: [staging, production]
 
     steps:
       - uses: actions/checkout@v4
@@ -32,29 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Prebuild Expo project
-        run: |
-          npx expo prebuild --no-install
-
-      - name: Pre-bundle React Native JS
-        run: |
-          npx react-native bundle \
-            --platform ios \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output ios/main.jsbundle \
-            --assets-dest ios/assets
-
-      - name: Cache JS bundle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ios/main.jsbundle
-            ios/assets
-          key: jsbundle-${{ hashFiles('**/*.js', 'package-lock.json') }}
-          restore-keys: jsbundle-
-
-      - name: Cache Pods
+      - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
           path: ios/Pods
@@ -66,24 +47,41 @@ jobs:
           sudo gem install cocoapods
           cd ios && pod install
 
+      # Use separate DerivedData per build type
       - name: Cache DerivedData (Xcode)
         uses: irgaly/xcode-cache@v1
         with:
-          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ github.ref_name }}
+          key: xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-${{ github.ref_name }}
           restore-keys: |
-            xcode-cache-deriveddata-${{ github.workflow }}-
+            xcode-cache-deriveddata-${{ github.workflow }}-${{ matrix.buildType }}-
           restore-mtime-targets: |
             DemoApp/**/*
 
+      # Archive iOS App
       - name: Archive iOS App
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.1.app
           cd ios
           mkdir -p build
-          xcodebuild \
-            -workspace DemoApp.xcworkspace \
-            -scheme DemoApp \
-            -configuration Release \
-            CODE_SIGNING_ALLOWED=NO \
-            -archivePath build/DemoApp.xcarchive \
-            archive
+          DERIVED_DATA_PATH=$(pwd)/build/DerivedData-${{ matrix.buildType }}
+          if [ "${{ matrix.buildType }}" = "staging" ]; then
+            xcodebuild \
+              -workspace DemoApp.xcworkspace \
+              -scheme DemoApp \
+              -configuration Release \
+              -derivedDataPath "$DERIVED_DATA_PATH" \
+              CODE_SIGNING_ALLOWED=NO \
+              -archivePath build/DemoApp-Staging.xcarchive \
+              archive
+          else
+            xcodebuild \
+              -workspace DemoApp.xcworkspace \
+              -scheme DemoApp \
+              -configuration Release \
+              -derivedDataPath "$DERIVED_DATA_PATH" \
+              CODE_SIGNING_ALLOWED=NO \
+              -archivePath build/DemoApp-Production.xcarchive \
+              archive
+            # Run iXGuard obfuscation on production archive
+            # Replace with your actual iXGuard command
+            # ixguard-cli build build/DemoApp-Production.xcarchive
+          fi
