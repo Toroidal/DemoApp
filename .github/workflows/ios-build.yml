@@ -22,8 +22,36 @@ jobs:
       - name: Select Xcode 16.1
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
+      # Install and cache npm deps
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      # ✅ Pre-bundle React Native JS (speeds up archive)
+      - name: Pre-bundle React Native JS
+        run: |
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output ios/main.jsbundle \
+            --assets-dest ios/assets
+
+      # Optional cache of bundle outputs
+      - name: Cache JS Bundle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/main.jsbundle
+            ios/assets
+          key: jsbundle-${{ hashFiles('**/*.js', 'package-lock.json') }}
+          restore-keys: jsbundle-
 
       - name: Cache Pods
         uses: actions/cache@v4
@@ -36,6 +64,7 @@ jobs:
           sudo gem install cocoapods
           cd ios && pod install
 
+      # ✅ DerivedData cache for native build reuse
       - name: Cache DerivedData (Xcode)
         uses: irgaly/xcode-cache@v1
         with:
@@ -45,6 +74,7 @@ jobs:
           restore-mtime-targets: |
             DemoApp/**/*
 
+      # ✅ Archive app (uses pre-bundled JS + DerivedData cache)
       - name: Archive iOS App
         run: |
           sudo xcode-select -s /Applications/Xcode_16.1.app
