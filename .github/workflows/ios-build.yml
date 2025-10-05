@@ -119,6 +119,7 @@ jobs:
             -scheme DemoApp \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
             archive \
             -archivePath "$ARCHIVE_PATH"
 
